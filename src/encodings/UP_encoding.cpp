@@ -59,10 +59,14 @@ int _MAPFSAT_UP::CreateFormula(int time_left)
 	spec.pebble = (movement == 2);
 	spec.single = (duplicates == 1);
 	// Following paths in cb_decide helps to find plans (makespan is usually
-	// satisfiable at the lower bound) but slows down the unsatisfiable calls
-	// that dominate sum of costs. MAPF_UP_DECIDE=0/1/2 overrides it.
+	// satisfiable at the lower bound) but slows down unsatisfiable calls a lot,
+	// so it stops after 1000 backtracks and is off for sum of costs, where most
+	// calls are unsatisfiable. MAPF_UP_DECIDE=0/1/2 and MAPF_UP_DECIDE_BUDGET
+	// (0 = unlimited) override this.
 	const char* decide = getenv("MAPF_UP_DECIDE");
 	spec.decide = (decide != NULL) ? atoi(decide) : (cost_function == 1 ? 1 : 0);
+	const char* budget = getenv("MAPF_UP_DECIDE_BUDGET");
+	spec.decide_budget = (budget != NULL) ? atoll(budget) : 1000;
 	spec.first_var.assign((size_t)agents * vertices, 0);
 	spec.first_t.assign((size_t)agents * vertices, 0);
 	spec.last_t.assign((size_t)agents * vertices, -1);

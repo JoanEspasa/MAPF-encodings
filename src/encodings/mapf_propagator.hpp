@@ -28,6 +28,7 @@ struct MapfTegSpec
 	bool pebble = false;			// pebble motion, otherwise parallel motion
 	bool single = false;			// at most one node per (agent, timestep)
 	int decide = 0;					// cb_decide: 0 = off, 1 = agents in order, 2 = shortest prefix first
+	long long decide_budget = 0;	// stop following paths after this many backtracks (0 = never)
 	std::vector<int> first_var;		// [a*V+v], 0 = vertex not used by agent a
 	std::vector<int> first_t;		// [a*V+v]
 	std::vector<int> last_t;		// [a*V+v]

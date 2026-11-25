@@ -304,7 +304,7 @@ int MapfPropagator::cb_propagate()
 // successor closest to the goal (largest last timestep).
 int MapfPropagator::cb_decide()
 {
-	if (!S.decide)
+	if (!S.decide || (S.decide_budget > 0 && stats.backtracks > S.decide_budget))
 		return 0;
 	int start = 0, end = A;
 	if (S.decide == 2)	// the incomplete agent with the shortest fixed prefix
