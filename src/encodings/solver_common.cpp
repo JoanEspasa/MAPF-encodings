@@ -43,7 +43,7 @@ void _MAPFSAT_ISolver::PrintSolveDetails(int time_left)
 	cout << "Instance name: " << inst->scen_name << endl;
 	cout << "Map name: " << inst->map_name << endl;
 	cout << "Encoding used: " << solver_name << endl;
-	cout << "SAT solver used: " << ((solver_to_use == 1) ? "CaDiCaL" : "Monosat") << endl;
+	cout << "SAT solver used: " << ((solver_to_use == 1) ? "CaDiCaL" : (solver_to_use == 2) ? "Monosat" : "CaDiCaL + MAPF propagator") << endl;
 	cout << "Optimizing function: " << ((cost_function == 1) ? "makespan" : "sum of costs") << endl;
 	cout << "Number of agents: " << agents << endl;
 	cout << "Mks LB: " << inst->GetMksLB(agents) << endl;

@@ -28,7 +28,7 @@ RELEASE_LIBS = $(patsubst %,$(R_DIR)/$(L_DIR)/%,$(OUTPUT_LIB)) $(patsubst %,$(R_
 _DEPS = instance.hpp logger.hpp encodings/solver_common.hpp
 DEPS = $(patsubst %,$(S_DIR)/%,$(_DEPS))
 
-_ENC_OBJ = solver_common.o SAT_encoding.o SMT_encoding.o
+_ENC_OBJ = solver_common.o SAT_encoding.o SMT_encoding.o UP_encoding.o mapf_propagator.o
 _OBJ = instance.o logger.o
 OBJ = $(patsubst %,$(O_DIR)/%,$(_OBJ)) $(patsubst %, $(O_DIR)/%,$(_ENC_OBJ)) $(patsubst %, $(O_DIR)/%,$(_MONOSAT_OBJ))
 _MAIN = main.o
@@ -87,6 +87,9 @@ $(O_DIR)_exists:
 
 $(CADICAL_LIB):
 	cd $(CADICAL_DIR) && ./configure && $(MAKE)
+
+# internal header, not part of the released MAPF.hpp
+$(O_DIR)/UP_encoding.o $(O_DIR)/mapf_propagator.o: $(E_DIR)/mapf_propagator.hpp
 
 ###########
 # testing #

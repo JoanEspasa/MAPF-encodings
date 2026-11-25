@@ -245,7 +245,7 @@ void PrintHelp(char* argv[], bool quiet)
 	cout << "	-h                  : Prints help and exits" << endl;
 	cout << "	-q                  : Suppress print on stdout" << endl;
 	cout << "	-p                  : Print found plan. If q flag is set, p flag is overwritten." << endl;
-	cout << "	-e encoding         : Encoding to be used. Available options are {mks|soc}_{parallel|pebble}_{at|pass|shift|monosat-pass|monosat-shift}_{eager|lazy}_{single|dupli}" << endl;
+	cout << "	-e encoding         : Encoding to be used. Available options are {mks|soc}_{parallel|pebble}_{at|pass|shift|monosat-pass|monosat-shift|up}_{eager|lazy}_{single|dupli} (up = at with a CaDiCaL propagator for conflicts, eager only)" << endl;
 	cout << "	-s scenario_file    : Path to a scenario file" << endl;
 	cout << "	-m map_dir          : Directory containing map files. Default is instances/maps" << endl;
 	cout << "	-a number_of_agents : Number of agents to solve. If not specified, all agents in the scenario file are used." << endl;
@@ -321,6 +321,11 @@ _MAPFSAT_ISolver* PickEncoding(string enc)
 		var = 3;
 		satsolver = 2;
 	}
+	if (parsed_options[2].compare("up") == 0)	// at + CaDiCaL propagator for conflicts
+	{
+		var = 1;
+		satsolver = 3;
+	}
 	if (var < 0)
 		return NULL;
 
@@ -342,8 +347,14 @@ _MAPFSAT_ISolver* PickEncoding(string enc)
 
 	if (satsolver == 1) 
 		solver = new _MAPFSAT_SAT(var,cost,moves,lazy,dupli,satsolver,enc);
-	if (satsolver == 2) 
+	if (satsolver == 2)
 		solver = new _MAPFSAT_SMT(var,cost,moves,lazy,dupli,satsolver,enc);
+	if (satsolver == 3)
+	{
+		if (lazy != 1)	// conflicts are always handled by the propagator
+			return NULL;
+		solver = new _MAPFSAT_UP(var,cost,moves,lazy,dupli,satsolver,enc);
+	}
 
 	return solver;
 }

@@ -189,7 +189,7 @@ class _MAPFSAT_SAT : public _MAPFSAT_ISolver
 public:
 	_MAPFSAT_SAT(int, int, int, int, int, int solver = 1, std::string name = "SAT_encoding");
 	~_MAPFSAT_SAT() {};
-private:
+protected:
 	int CreateFormula(int);
 
 	void AddClause(std::vector<int>);
@@ -219,6 +219,22 @@ private:
 	int CreateMove_Graph_MonosatShift(int);
 	int VarToID(int, bool, int&, std::unordered_map<int, int>&);
 	int GetNextVertex(std::vector<bool>&, int, int, int);
+};
+
+// At variables with CaDiCaL, collision constraints enforced by an
+// IPASIR-UP propagator instead of clauses (see mapf_propagator.hpp).
+class _MAPFSAT_UP : public _MAPFSAT_SAT
+{
+public:
+	_MAPFSAT_UP(int, int, int, int, int, int solver = 3, std::string name = "UP_encoding");
+	~_MAPFSAT_UP() {};
+private:
+	int CreateFormula(int);
+	void CreateSolver();
+	void ReleaseSolver();
+
+	void CreateMove_PrevVertex_At();
+	void* propagator = NULL;	// MapfPropagator, kept opaque in this header
 };
 
 #endif
