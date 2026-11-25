@@ -10,3 +10,4 @@ valgrind-out.txt
 *.cnf
 *.txt
 tmp*
+__pycache__/
