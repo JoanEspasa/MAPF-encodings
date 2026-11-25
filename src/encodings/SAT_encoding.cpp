@@ -207,7 +207,21 @@ void _MAPFSAT_SAT::AddClause(vector<int> clause)
 
 void _MAPFSAT_SAT::CreateSolver()
 {
-	SAT_solver = new CaDiCaL::Solver;
+	CaDiCaL::Solver* solver = new CaDiCaL::Solver;
+	SAT_solver = solver;
+
+	// optional solver options for experiments, e.g. MAPF_CADICAL_OPTS="phase=0,chrono=0"
+	const char* opts = getenv("MAPF_CADICAL_OPTS");
+	if (opts == NULL)
+		return;
+	stringstream ss(opts);
+	string opt;
+	while (getline(ss, opt, ','))
+	{
+		size_t eq = opt.find('=');
+		if (opt.empty() || eq == string::npos || !solver->set(opt.substr(0, eq).c_str(), atoi(opt.substr(eq + 1).c_str())))
+			cerr << "ignoring invalid CaDiCaL option '" << opt << "'" << endl;
+	}
 }
 
 void _MAPFSAT_SAT::ReleaseSolver()
