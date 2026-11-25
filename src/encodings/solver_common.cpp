@@ -6,6 +6,8 @@
 #include "../externals/pblib/pb2cnf.h" // https://github.com/master-keying/pblib
 #pragma GCC diagnostic pop	// do not ignore warnings in our code!
 
+#include <cstdlib>
+
 using namespace std;
 
 /****************************/
@@ -991,21 +993,7 @@ int _MAPFSAT_ISolver::CreateConst_LimitSoc(int lit)
 		}
 	}
 
-	// add constraint on sum of delays
-	PBConfig config = make_shared< PBConfigClass >();
-    config->amo_encoder = AMO_ENCODER::KPRODUCT;
-    config->amk_encoder = AMK_ENCODER::CARD;
-    PB2CNF pb2cnf(config);
-	vector<vector<int> > formula;
-	lit = pb2cnf.encodeAtMostK(late_variables, delta, formula, lit) + 1;
-
-	for (size_t i = 0; i < formula.size(); i++)
-	{
-		AddClause(formula[i]);
-		nr_clauses_soc++;
-	}
-
-	return lit;
+	return CreateConst_SumOfDelays(late_variables, lit);
 }
 
 int _MAPFSAT_ISolver::CreateConst_LimitSoc_AllAt(int lit)
@@ -1048,21 +1036,7 @@ int _MAPFSAT_ISolver::CreateConst_LimitSoc_AllAt(int lit)
 		}
 	}
 
-	// add constraint on sum of delays
-	PBConfig config = make_shared< PBConfigClass >();
-    config->amo_encoder = AMO_ENCODER::KPRODUCT;
-    config->amk_encoder = AMK_ENCODER::CARD;
-    PB2CNF pb2cnf(config);
-	vector<vector<int> > formula;
-	lit = pb2cnf.encodeAtMostK(late_variables, delta, formula, lit) + 1;
-
-	for (size_t i = 0; i < formula.size(); i++)
-	{
-		AddClause(formula[i]);
-		nr_clauses_soc++;
-	}
-
-	return lit;
+	return CreateConst_SumOfDelays(late_variables, lit);
 }
 
 int _MAPFSAT_ISolver::CreateConst_LimitSoc_Shift(int lit)
@@ -1108,20 +1082,76 @@ int _MAPFSAT_ISolver::CreateConst_LimitSoc_Shift(int lit)
 		}
 	}
 
-	// add constraint on sum of delays
-	PBConfig config = make_shared< PBConfigClass >();
-    config->amo_encoder = AMO_ENCODER::KPRODUCT;
-    config->amk_encoder = AMK_ENCODER::CARD;
-    PB2CNF pb2cnf(config);
-	vector<vector<int> > formula;
-	lit = pb2cnf.encodeAtMostK(late_variables, delta, formula, lit) + 1;
+	return CreateConst_SumOfDelays(late_variables, lit);
+}
 
-	for (size_t i = 0; i < formula.size(); i++)
+// At most delta of the Late variables are true. They come in blocks of delta
+// per agent, each block sorted by the clauses Late(a,d+1) -> Late(a,d), so each
+// block is the agent's delay in unary. The blocks are added up by a totalizer
+// truncated at delta+1. MAPF_SOC_PBLIB selects the previous PBLib encoding.
+int _MAPFSAT_ISolver::CreateConst_SumOfDelays(vector<int>& late_variables, int lit)
+{
+	if (getenv("MAPF_SOC_PBLIB") != NULL)
 	{
-		AddClause(formula[i]);
-		nr_clauses_soc++;
+		PBConfig config = make_shared< PBConfigClass >();
+		config->amo_encoder = AMO_ENCODER::KPRODUCT;
+		config->amk_encoder = AMK_ENCODER::CARD;
+		PB2CNF pb2cnf(config);
+		vector<vector<int> > formula;
+		lit = pb2cnf.encodeAtMostK(late_variables, delta, formula, lit) + 1;
+
+		for (size_t i = 0; i < formula.size(); i++)
+		{
+			AddClause(formula[i]);
+			nr_clauses_soc++;
+		}
+		return lit;
 	}
 
+	const size_t cap = delta + 1;	// counting further than delta+1 is not needed
+	vector<vector<int> > level;
+	for (size_t i = 0; i < late_variables.size(); i += delta)
+		level.push_back(vector<int>(late_variables.begin() + i, late_variables.begin() + min(i + delta, late_variables.size())));
+
+	while (level.size() > 1)
+	{
+		vector<vector<int> > next;
+		for (size_t p = 0; p + 1 < level.size(); p += 2)
+		{
+			const vector<int>& x = level[p];
+			const vector<int>& y = level[p + 1];
+			vector<int> z(min(x.size() + y.size(), cap));
+			for (size_t k = 0; k < z.size(); k++)
+				z[k] = lit++;
+			// at least i of x and at least j of y imply at least i+j of z
+			for (size_t i = 0; i <= x.size(); i++)
+			{
+				for (size_t j = 0; j <= y.size(); j++)
+				{
+					if (i + j == 0)
+						continue;
+					vector<int> clause;
+					if (i > 0)
+						clause.push_back(-x[i - 1]);
+					if (j > 0)
+						clause.push_back(-y[j - 1]);
+					clause.push_back(z[min(i + j, z.size()) - 1]);
+					AddClause(clause);
+					nr_clauses_soc++;
+				}
+			}
+			next.push_back(z);
+		}
+		if (level.size() % 2 == 1)
+			next.push_back(level.back());
+		level.swap(next);
+	}
+
+	if (!level.empty() && level[0].size() > (size_t)delta)	// the sum must not reach delta+1
+	{
+		AddClause(vector<int> {-level[0][delta]});
+		nr_clauses_soc++;
+	}
 	return lit;
 }
 

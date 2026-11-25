@@ -159,6 +159,7 @@ protected:
 	int CreateConst_LimitSoc(int);
 	int CreateConst_LimitSoc_AllAt(int);
 	int CreateConst_LimitSoc_Shift(int);
+	int CreateConst_SumOfDelays(std::vector<int>&, int);
 	void CreateConst_Avoid();
 
 	// solver functions
