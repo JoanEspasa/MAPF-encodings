@@ -15,11 +15,15 @@ OUTPUT_LIB = libmapf.a
 HEADER_NAME = MAPF.hpp
 EX_NAME = example
 
+# CaDiCaL is a git submodule (git submodule update --init), built by this makefile
+CADICAL_DIR ?= solvers/cadical
+CADICAL_LIB = $(CADICAL_DIR)/build/libcadical.a
+
 #_SHARED_LIBS = z gmpxx gmp
 #SHARED_LIBS = $(patsubst %,-l%,$(_SHARED_LIBS))
-_LIBS = libpb.a libcadical.a #libmonosat.a
-LIBS = $(patsubst %,$(L_DIR)/%,$(_LIBS))
-RELEASE_LIBS = $(patsubst %,$(R_DIR)/$(L_DIR)/%,$(OUTPUT_LIB)) $(patsubst %,$(R_DIR)/$(L_DIR)/%,$(_LIBS))
+_LIBS = libpb.a #libmonosat.a
+LIBS = $(patsubst %,$(L_DIR)/%,$(_LIBS)) $(CADICAL_LIB)
+RELEASE_LIBS = $(patsubst %,$(R_DIR)/$(L_DIR)/%,$(OUTPUT_LIB)) $(patsubst %,$(R_DIR)/$(L_DIR)/%,$(_LIBS)) $(R_DIR)/$(L_DIR)/libcadical.a
 
 _DEPS = instance.hpp logger.hpp encodings/solver_common.hpp
 DEPS = $(patsubst %,$(S_DIR)/%,$(_DEPS))
@@ -42,8 +46,8 @@ all: $(PROJECT_NAME) lib example
 release: $(PROJECT_NAME) lib 
 
 # binary only
-$(PROJECT_NAME): $(OBJ) $(MAIN)
-	$(CC) $(CFLAGS) -o $(R_DIR)/$@ $^ $(LIBS)
+$(PROJECT_NAME): $(OBJ) $(MAIN) $(CADICAL_LIB)
+	$(CC) $(CFLAGS) -o $(R_DIR)/$@ $(OBJ) $(MAIN) $(LIBS)
 #	$(CC) $(CFLAGS) -o $(R_DIR)/$@ $^ $(LIBS) $(SHARED_LIBS)
 
 # library and header only
@@ -55,6 +59,7 @@ lib: $(OBJ) $(DEPS)
 	rm -rf $(R_DIR)/$(L_DIR)
 	mkdir $(R_DIR)/$(L_DIR)
 	cp $(L_DIR)/*.a $(R_DIR)/$(L_DIR)
+	cp $(CADICAL_LIB) $(R_DIR)/$(L_DIR)
 	cp $(L_DIR)/monosat $(R_DIR)/$(L_DIR)
 	ar -rcs $(R_DIR)/$(L_DIR)/$(OUTPUT_LIB) $(OBJ)
 
@@ -72,13 +77,16 @@ $(EX_NAME): $(R_DIR)/$(EX_NAME).cpp lib
 ################
 
 $(O_DIR)/%.o: $(E_DIR)/%.cpp $(DEPS) | $(O_DIR)_exists
-	$(CC) $(CFLAGS) -I $(EX_DIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -I $(CADICAL_DIR)/src -I $(EX_DIR) -c -o $@ $<
 
 $(O_DIR)/%.o: $(S_DIR)/%.cpp $(DEPS) | $(O_DIR)_exists
-	$(CC) $(CFLAGS) -I $(EX_DIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -I $(CADICAL_DIR)/src -I $(EX_DIR) -c -o $@ $<
 
 $(O_DIR)_exists:
 	mkdir -p $(O_DIR)
+
+$(CADICAL_LIB):
+	cd $(CADICAL_DIR) && ./configure && $(MAKE)
 
 ###########
 # testing #

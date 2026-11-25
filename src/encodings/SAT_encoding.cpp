@@ -1,7 +1,7 @@
 #include "solver_common.hpp"
 
 // hide includes form user
-#include "../externals/cadical.hpp" // https://github.com/arminbiere/cadical
+#include "cadical.hpp" // https://github.com/arminbiere/cadical (submodule in solvers/cadical)
 
 using namespace std;
 
